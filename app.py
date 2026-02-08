@@ -93,7 +93,6 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-@app.before_first_request
 def create_tables():
     # проверяем существующие таблицы через инспектор SQLAlchemy
     missing = []
@@ -122,13 +121,23 @@ def create_tables():
         if not admin:
             admin_email = os.environ.get('ADMIN_EMAIL', 'admin@localhost')
             admin_password = os.environ.get('ADMIN_PASSWORD', 'admin')
-            admin = User(username='admin', email=admin_email, role='support')
+            admin = User(username='admin', email=admin_email, role='admin')
             admin.set_password(admin_password)
             db.session.add(admin)
             db.session.commit()
             app.logger.info('Created default admin user "admin"')
     except Exception as e:
         app.logger.exception('Failed to ensure admin user exists: %s', e)
+
+
+# Some Flask versions (or alternative WSGI entrypoints) may not support
+# the `before_first_request` decorator at import time inside the container.
+# Ensure DB/tables/admin are initialized now using the app context.
+try:
+    with app.app_context():
+        create_tables()
+except Exception as e:
+    app.logger.exception('Error while initializing DB at import time: %s', e)
 
 
 @app.route('/')
@@ -189,9 +198,45 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # admin has special users management page
+    if current_user.role == 'admin':
+        return redirect(url_for('admin_users'))
     if current_user.role == 'support':
         return redirect(url_for('support_dashboard'))
     return redirect(url_for('user_dashboard'))
+
+
+@app.route('/admin/users')
+@login_required
+def admin_users():
+    # only admin (created default) can access this
+    if current_user.role != 'admin':
+        flash('Доступ запрещён.', 'warning')
+        return redirect(url_for('dashboard'))
+    users = User.query.order_by(User.created_at.asc()).all()
+    roles = ['user', 'support', 'admin']
+    return render_template('admin_users.html', users=users, roles=roles)
+
+
+@app.route('/admin/users/<int:user_id>/role', methods=['POST'])
+@login_required
+def admin_set_role(user_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещён.', 'warning')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    new_role = request.form.get('role')
+    if new_role not in ('user', 'support', 'admin'):
+        flash('Недопустимая роль.', 'danger')
+        return redirect(url_for('admin_users'))
+    # prevent removing last admin? simple check: allow change but avoid locking self out
+    if user.id == current_user.id and new_role != 'admin':
+        flash('Нельзя изменить свою собственную роль.', 'warning')
+        return redirect(url_for('admin_users'))
+    user.role = new_role
+    db.session.commit()
+    flash('Роль обновлена.', 'success')
+    return redirect(url_for('admin_users'))
 
 
 @app.route('/user')
