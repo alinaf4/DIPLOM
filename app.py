@@ -95,7 +95,40 @@ def load_user(user_id):
 
 @app.before_first_request
 def create_tables():
-    db.create_all()
+    # проверяем существующие таблицы через инспектор SQLAlchemy
+    missing = []
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        existing_tables = set(inspector.get_table_names())
+        required_tables = {'user', 'ticket', 'ticket_comment', 'attachment'}
+        missing = list(required_tables - existing_tables)
+    except Exception as e:
+        app.logger.exception('DB inspection failed: %s', e)
+        # при неудаче попробуем всё же создать таблицы
+        missing = ['unknown']
+
+    if missing:
+        try:
+            app.logger.info('Missing tables detected: %s. Creating tables...', ','.join(missing))
+            db.create_all()
+            app.logger.info('Tables created (if they did not exist).')
+        except Exception as e:
+            app.logger.exception('Failed to create tables: %s', e)
+
+    # ensure default admin user exists
+    try:
+        admin = User.query.filter_by(username='admin').first()
+        if not admin:
+            admin_email = os.environ.get('ADMIN_EMAIL', 'admin@localhost')
+            admin_password = os.environ.get('ADMIN_PASSWORD', 'admin')
+            admin = User(username='admin', email=admin_email, role='support')
+            admin.set_password(admin_password)
+            db.session.add(admin)
+            db.session.commit()
+            app.logger.info('Created default admin user "admin"')
+    except Exception as e:
+        app.logger.exception('Failed to ensure admin user exists: %s', e)
 
 
 @app.route('/')
