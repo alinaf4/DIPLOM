@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Кабинет техподдержки</h2>
+
+<h4>Открытые тикеты</h4>
+{% if open_tickets %}
+  <ul class="list-group mb-4">
+    {% for t in open_tickets %}
+      <li class="list-group-item">
+        <a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a>
+        &nbsp;<small class="text-muted">от {{ t.creator.username }}</small>
+        <span class="badge bg-secondary ms-2">{{ t.priority }}</span>
+        <form class="d-inline float-end" method="post" action="{{ url_for('take_ticket', ticket_id=t.id) }}">
+          <button class="btn btn-sm btn-outline-primary">Взять в работу</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Нет открытых тикетов.</p>
+{% endif %}
+
+<h4>Тикеты в работе (мои)</h4>
+{% if in_progress %}
+  <ul class="list-group mb-4">
+    {% for t in in_progress %}
+      <li class="list-group-item">
+        <a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a>
+        &nbsp;<small class="text-muted">от {{ t.creator.username }}</small>
+        <span class="badge bg-secondary ms-2">{{ t.priority }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Нет тикетов в работе у вас.</p>
+{% endif %}
+
+<h4>Все тикеты в работе</h4>
+{% if assigned_all %}
+  <ul class="list-group">
+    {% for t in assigned_all %}
+      <li class="list-group-item">
+        <a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a>
+        &nbsp;<small class="text-muted">исполнитель: {{ t.assignee.username if t.assignee else '—' }}</small>
+        <span class="badge bg-secondary ms-2">{{ t.priority }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Нет тикетов в работе.</p>
+{% endif %}
+{% endblock %}
