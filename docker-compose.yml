@@ -1,0 +1,33 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: crm_db
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/crm_db
+      - SECRET_KEY=change-this-secret
+      - SUPPORT_CODE=SUPPORT123
+      - UPLOAD_FOLDER=/app/uploads
+      - MAX_CONTENT_LENGTH=10485760   # 10 MB по умолчанию
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - uploads_data:/app/uploads
+
+volumes:
+  db_data:
+  uploads_data:
