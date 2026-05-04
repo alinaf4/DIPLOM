@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Все заявки</h2>
+{% if tickets %}
+  <table class="table">
+    <thead><tr><th>#</th><th>Заголовок</th><th>Автор</th><th>Автор: компания</th><th>Автор: адрес</th><th>Исполнитель</th><th>Создан</th><th>Выполнен</th><th>Статус</th><th>Действия</th></tr></thead>
+    <tbody>
+      {% for t in tickets %}
+        <tr>
+          <td>{{ t.id }}</td>
+          <td><a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a></td>
+          <td>{{ (t.creator.last_name or '') }} {{ (t.creator.first_name or '') }} ({{ t.creator.username }})</td>
+          <td>{{ t.creator.company_name or '—' }}</td>
+          <td>{{ t.creator.address or '—' }}</td>
+          <td>{% if t.assignee %}{{ (t.assignee.last_name or '') }} {{ (t.assignee.first_name or '') }}{% else %}—{% endif %}</td>
+          <td>{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{% if t.resolved_at %}{{ t.resolved_at.strftime('%Y-%m-%d %H:%M') }}{% else %}—{% endif %}</td>
+          <td>{{ t.status|status_label }}</td>
+          <td>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('manager_edit_ticket', ticket_id=t.id) }}">Редактировать</a>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('export_ticket_pdf', ticket_id=t.id) }}">PDF</a>
+            <form method="post" action="{{ url_for('manager_delete_ticket', ticket_id=t.id) }}" style="display:inline-block;margin-left:6px;" onsubmit="return confirm('Удалить тикет #{{ t.id }}?');">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>Нет заявок.</p>
+{% endif %}
+{% endblock %}

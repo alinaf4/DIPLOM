@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, abort
+import io
+from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory, abort, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +9,12 @@ from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
 load_dotenv()
+
+from sqlalchemy import func, text
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas as pdf_canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'log', 'zip', 'rar', 'doc', 'docx'])
 
@@ -32,13 +39,56 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
+# Человекочитаемые метки статусов (русские значения)
+STATUS_LABELS = {
+    'open': 'Открыт',
+    'in_progress': 'В работе',
+    'resolved': 'Выполнен',
+}
+
+
+@app.template_filter('status_label')
+def status_label_filter(status):
+    # Возвращает русскую метку статуса для шаблонов
+    return STATUS_LABELS.get(status, status)
+
+
+def get_status_label(status):
+    # Возвращает русскую метку статуса для внутреннего использования (PDF и т.п.)
+    return STATUS_LABELS.get(status, status)
+
+
+# Метки приоритетов (русские значения для отображения)
+PRIORITY_LABELS = {
+    'low': 'Низкий',
+    'medium': 'Средний',
+    'high': 'Высокий',
+}
+
+
+@app.template_filter('priority_label')
+def priority_label_filter(priority):
+    # Возвращает русскую метку приоритета для шаблонов
+    return PRIORITY_LABELS.get(priority, priority)
+
+
+def get_priority_label(priority):
+    # Возвращает русскую метку приоритета для внутреннего использования (PDF и т.п.)
+    return PRIORITY_LABELS.get(priority, priority)
+
 
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), nullable=False, unique=True)
     email = db.Column(db.String(200), nullable=False, unique=True)
     password_hash = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default='user')  # 'user' or 'support'
+    role = db.Column(db.String(50), nullable=False, default='user')  # роль пользователя: 'user', 'support', 'manager', 'admin'
+    # поля профиля пользователя
+    company_name = db.Column(db.String(255), nullable=True)
+    address = db.Column(db.String(500), nullable=True)
+    first_name = db.Column(db.String(150), nullable=True)
+    last_name = db.Column(db.String(150), nullable=True)
+    phone = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     tickets_created = db.relationship('Ticket', backref='creator', foreign_keys='Ticket.creator_id', lazy='dynamic')
@@ -57,10 +107,11 @@ class Ticket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(50), nullable=False, default='open')  # open, in_progress, resolved
-    priority = db.Column(db.String(20), nullable=False, default='medium')  # low, medium, high
+    status = db.Column(db.String(50), nullable=False, default='open')  # возможные значения: open, in_progress, resolved
+    priority = db.Column(db.String(20), nullable=False, default='medium')  # приоритет: low, medium, high (хранится как ключ)
     creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     assignee_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    resolved_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -80,8 +131,8 @@ class TicketComment(db.Model):
 
 class Attachment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(300), nullable=False)       # stored filename
-    original_name = db.Column(db.String(300), nullable=False)  # original filename
+    filename = db.Column(db.String(300), nullable=False)       # имя файла в хранилище (stored filename)
+    original_name = db.Column(db.String(300), nullable=False)  # оригинальное имя загруженного файла
     ticket_id = db.Column(db.Integer, db.ForeignKey('ticket.id'), nullable=True)
     uploader_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     comment_id = db.Column(db.Integer, db.ForeignKey('ticket_comment.id'), nullable=True)
@@ -94,7 +145,7 @@ def load_user(user_id):
 
 
 def create_tables():
-    # проверяем существующие таблицы через инспектор SQLAlchemy
+    # Проверяем, какие таблицы уже есть в базе через инспектор SQLAlchemy
     missing = []
     try:
         from sqlalchemy import inspect
@@ -104,7 +155,7 @@ def create_tables():
         missing = list(required_tables - existing_tables)
     except Exception as e:
         app.logger.exception('DB inspection failed: %s', e)
-        # при неудаче попробуем всё же создать таблицы
+        # Если инспекция упала, попытаемся всё равно создать таблицы
         missing = ['unknown']
 
     if missing:
@@ -112,10 +163,31 @@ def create_tables():
             app.logger.info('Missing tables detected: %s. Creating tables...', ','.join(missing))
             db.create_all()
             app.logger.info('Tables created (if they did not exist).')
+            # Убедимся, что колонки профиля существуют (используем ALTER TABLE IF NOT EXISTS при поддержке)
+            try:
+                stmts = [
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);",
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS address VARCHAR(500);",
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS first_name VARCHAR(150);",
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS last_name VARCHAR(150);",
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS phone VARCHAR(50);",
+                ]
+                for s in stmts:
+                    try:
+                        db.session.execute(text(s))
+                    except Exception:
+                        # в качестве запасного варианта попробуем выполнить через engine.execute
+                        try:
+                            db.engine.execute(text(s))
+                        except Exception as e:
+                            app.logger.debug('Could not run alter statement (%s): %s', s, e)
+                db.session.commit()
+            except Exception as e:
+                app.logger.exception('Failed to ensure profile columns exist: %s', e)
         except Exception as e:
             app.logger.exception('Failed to create tables: %s', e)
 
-    # ensure default admin user exists
+    # Создаём пользователя admin по умолчанию, если его нет
     try:
         admin = User.query.filter_by(username='admin').first()
         if not admin:
@@ -130,14 +202,40 @@ def create_tables():
         app.logger.exception('Failed to ensure admin user exists: %s', e)
 
 
-# Some Flask versions (or alternative WSGI entrypoints) may not support
-# the `before_first_request` decorator at import time inside the container.
-# Ensure DB/tables/admin are initialized now using the app context.
+# Некоторые версии Flask (или альтернативные точки входа WSGI) могут не поддерживать
+# декоратор `before_first_request` при импорте внутри контейнера.
+# Поэтому инициализируем базу/таблицы/админа прямо сейчас в контексте приложения.
 try:
     with app.app_context():
         create_tables()
 except Exception as e:
     app.logger.exception('Error while initializing DB at import time: %s', e)
+
+# Гарантируем существование колонок профиля и поля resolved_at, даже если таблицы уже были созданы
+def ensure_profile_columns():
+    stmts = [
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS address VARCHAR(500);',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS first_name VARCHAR(150);',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS last_name VARCHAR(150);',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS phone VARCHAR(50);',
+        'ALTER TABLE "ticket" ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP;',
+    ]
+    try:
+        with db.engine.begin() as conn:
+            for s in stmts:
+                try:
+                    conn.execute(text(s))
+                except Exception as e:
+                    app.logger.debug('Could not run alter statement (%s): %s', s, e)
+    except Exception as e:
+        app.logger.exception('Failed to ensure profile columns exist: %s', e)
+
+try:
+    with app.app_context():
+        ensure_profile_columns()
+except Exception as e:
+    app.logger.exception('Error while ensuring profile columns at import time: %s', e)
 
 
 @app.route('/')
@@ -198,9 +296,11 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # admin has special users management page
+    # Для админа доступна отдельная страница управления пользователями
     if current_user.role == 'admin':
         return redirect(url_for('admin_users'))
+    if current_user.role == 'manager':
+        return redirect(url_for('manager_dashboard'))
     if current_user.role == 'support':
         return redirect(url_for('support_dashboard'))
     return redirect(url_for('user_dashboard'))
@@ -209,12 +309,12 @@ def dashboard():
 @app.route('/admin/users')
 @login_required
 def admin_users():
-    # only admin (created default) can access this
+    # Только админ может попасть сюда
     if current_user.role != 'admin':
         flash('Доступ запрещён.', 'warning')
         return redirect(url_for('dashboard'))
     users = User.query.order_by(User.created_at.asc()).all()
-    roles = ['user', 'support', 'admin']
+    roles = ['user', 'support', 'manager', 'admin']
     return render_template('admin_users.html', users=users, roles=roles)
 
 
@@ -226,10 +326,10 @@ def admin_set_role(user_id):
         return redirect(url_for('dashboard'))
     user = User.query.get_or_404(user_id)
     new_role = request.form.get('role')
-    if new_role not in ('user', 'support', 'admin'):
+    if new_role not in ('user', 'support', 'admin', 'manager'):
         flash('Недопустимая роль.', 'danger')
         return redirect(url_for('admin_users'))
-    # prevent removing last admin? simple check: allow change but avoid locking self out
+    # Предотвращаем изменение собственной роли таким образом, чтобы заблокировать себя (простая проверка)
     if user.id == current_user.id and new_role != 'admin':
         flash('Нельзя изменить свою собственную роль.', 'warning')
         return redirect(url_for('admin_users'))
@@ -237,6 +337,99 @@ def admin_set_role(user_id):
     db.session.commit()
     flash('Роль обновлена.', 'success')
     return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/user/<int:user_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_user_profile(user_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещён.', 'warning')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        # Позволяем админу редактировать username/email с проверкой уникальности
+        new_username = request.form.get('username', '').strip()
+        new_email = request.form.get('email', '').strip()
+        if new_username and new_username != user.username:
+            if User.query.filter(User.username == new_username).first():
+                flash('Имя пользователя занято.', 'danger')
+                return redirect(url_for('admin_edit_user_profile', user_id=user.id))
+            user.username = new_username
+        if new_email and new_email != user.email:
+            if User.query.filter(User.email == new_email).first():
+                flash('Email уже используется.', 'danger')
+                return redirect(url_for('admin_edit_user_profile', user_id=user.id))
+            user.email = new_email
+        user.first_name = request.form.get('first_name') or None
+        user.last_name = request.form.get('last_name') or None
+        user.phone = request.form.get('phone') or None
+        user.company_name = request.form.get('company_name') or None
+        user.address = request.form.get('address') or None
+        db.session.commit()
+        flash('Профиль пользователя обновлён.', 'success')
+        return redirect(url_for('admin_users'))
+    return render_template('profile.html', user=user, allow_credentials_edit=True)
+
+
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_user(user_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещён.', 'warning')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    # Не позволяем удалить самого себя
+    if user.id == current_user.id:
+        flash('Нельзя удалить самого себя.', 'warning')
+        return redirect(url_for('admin_users'))
+    try:
+        # Удаляем тикеты, созданные пользователем (и их вложения/комментарии)
+        tickets = Ticket.query.filter_by(creator_id=user.id).all()
+        for t in tickets:
+            # Удаляем вложения, привязанные к тикету
+            Attachment.query.filter_by(ticket_id=t.id).delete()
+            # Удаляем комментарии к тикету (и их вложения)
+            TicketComment.query.filter_by(ticket_id=t.id).delete()
+            db.session.delete(t)
+
+        # Снимаем назначения с тикетов, где пользователь был исполнителем
+        Ticket.query.filter(Ticket.assignee_id == user.id).update({ 'assignee_id': None })
+
+        # Удаляем вложения и комментарии, автором которых был пользователь (если они не связаны с уже удалёнными тикетами)
+        Attachment.query.filter_by(uploader_id=user.id).delete()
+        TicketComment.query.filter_by(author_id=user.id).delete()
+
+        db.session.delete(user)
+        db.session.commit()
+        flash('Пользователь и его созданные заявки удалены.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.exception('Ошибка при удалении пользователя: %s', e)
+        flash('Ошибка при удалении пользователя. Проверьте логи.', 'danger')
+    return redirect(url_for('admin_users'))
+
+
+@app.route('/admin/user/<int:user_id>/password', methods=['GET', 'POST'])
+@login_required
+def admin_change_user_password(user_id):
+    if current_user.role != 'admin':
+        flash('Доступ запрещён.', 'warning')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        password = request.form.get('password', '').strip()
+        password2 = request.form.get('password2', '').strip()
+        if not password:
+            flash('Введите новый пароль.', 'danger')
+            return redirect(url_for('admin_change_user_password', user_id=user.id))
+        if password != password2:
+            flash('Пароли не совпадают.', 'danger')
+            return redirect(url_for('admin_change_user_password', user_id=user.id))
+        user.set_password(password)
+        db.session.commit()
+        flash('Пароль пользователя обновлён.', 'success')
+        return redirect(url_for('admin_users'))
+    return render_template('admin_change_password.html', user=user)
 
 
 @app.route('/user')
@@ -247,6 +440,290 @@ def user_dashboard():
         return redirect(url_for('dashboard'))
     tickets = Ticket.query.filter_by(creator_id=current_user.id).order_by(Ticket.created_at.desc()).all()
     return render_template('user_dashboard.html', tickets=tickets)
+
+
+@app.route('/manager')
+@login_required
+def manager_dashboard():
+    if current_user.role != 'manager':
+        flash('Только менеджер может видеть эту страницу.', 'warning')
+        return redirect(url_for('dashboard'))
+    try:
+        # Статистика: количество тикетов по создателям (по пользователю) и по компаниям, а также по исполнителям
+        creators_by_user = db.session.query(
+            User.id, User.first_name, User.last_name, User.username, db.func.count(Ticket.id).label('cnt')
+        ).join(Ticket, Ticket.creator_id == User.id).group_by(User.id, User.first_name, User.last_name, User.username).order_by(db.desc('cnt')).all()
+
+        creators_stats = []
+        for uid, first, last, username, cnt in creators_by_user:
+            display = (f"{last or ''} {first or ''}".strip() or username)
+            creators_stats.append((display, cnt))
+
+        # Агрегация по названию компании
+        creators_by_company = db.session.query(
+            User.company_name, db.func.count(Ticket.id).label('cnt')
+        ).join(Ticket, Ticket.creator_id == User.id).group_by(User.company_name).order_by(db.desc('cnt')).all()
+        creators_companies = [((cn or '—'), cnt) for cn, cnt in creators_by_company]
+
+        assignees_by_user = db.session.query(
+            User.id, User.first_name, User.last_name, User.username, db.func.count(Ticket.id).label('cnt')
+        ).join(Ticket, Ticket.assignee_id == User.id).group_by(User.id, User.first_name, User.last_name, User.username).order_by(db.desc('cnt')).all()
+        assignees_stats = []
+        for uid, first, last, username, cnt in assignees_by_user:
+            display = (f"{last or ''} {first or ''}".strip() or username)
+            assignees_stats.append((display, cnt))
+
+        recent_tickets = Ticket.query.order_by(Ticket.created_at.desc()).limit(20).all()
+    except Exception as e:
+        app.logger.exception('Ошибка при формировании данных менеджера: %s', e)
+        flash('Произошла ошибка при загрузке данных менеджера. Проверьте логи.', 'danger')
+        creators_stats = []
+        assignees_stats = []
+        recent_tickets = []
+    return render_template('manager_dashboard.html', creators_stats=creators_stats, creators_companies=creators_companies, assignees_stats=assignees_stats, recent_tickets=recent_tickets)
+
+
+@app.route('/manager/tickets')
+@login_required
+def manager_tickets():
+    if current_user.role != 'manager':
+        flash('Только менеджер может видеть эту страницу.', 'warning')
+        return redirect(url_for('dashboard'))
+    tickets = Ticket.query.order_by(Ticket.created_at.desc()).all()
+    return render_template('manager_tickets.html', tickets=tickets)
+
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    user = current_user
+    if request.method == 'POST':
+        user.first_name = request.form.get('first_name') or None
+        user.last_name = request.form.get('last_name') or None
+        user.phone = request.form.get('phone') or None
+        user.company_name = request.form.get('company_name') or None
+        user.address = request.form.get('address') or None
+        db.session.commit()
+        flash('Профиль сохранён.', 'success')
+        return redirect(url_for('profile'))
+    return render_template('profile.html', user=user)
+
+
+@app.route('/manager/users')
+@login_required
+def manager_users():
+    if current_user.role != 'manager':
+        flash('Только менеджер может видеть эту страницу.', 'warning')
+        return redirect(url_for('dashboard'))
+    users = User.query.order_by(User.username.asc()).all()
+    return render_template('manager_users.html', users=users)
+
+
+@app.route('/manager/user/<int:user_id>/profile', methods=['GET', 'POST'])
+@login_required
+def manager_edit_user_profile(user_id):
+    if current_user.role not in ('manager', 'admin'):
+        flash('Только менеджер или админ может редактировать профиль пользователя.', 'warning')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        user.first_name = request.form.get('first_name') or None
+        user.last_name = request.form.get('last_name') or None
+        user.phone = request.form.get('phone') or None
+        user.company_name = request.form.get('company_name') or None
+        user.address = request.form.get('address') or None
+        db.session.commit()
+        flash('Профиль пользователя обновлён.', 'success')
+        return redirect(url_for('manager_users'))
+    return render_template('profile.html', user=user)
+
+
+@app.route('/manager/performers')
+@login_required
+def manager_performers():
+    if current_user.role != 'manager':
+        flash('Только менеджер может видеть эту страницу.', 'warning')
+        return redirect(url_for('dashboard'))
+    # Исполнители — пользователи с ролью 'support'
+    performers = User.query.filter_by(role='support').order_by(User.username.asc()).all()
+    return render_template('manager_performers.html', performers=performers)
+
+
+@app.route('/manager/ticket/<int:ticket_id>/edit', methods=['GET', 'POST'])
+@login_required
+def manager_edit_ticket(ticket_id):
+    if current_user.role != 'manager':
+        flash('Только менеджер может редактировать тикеты.', 'warning')
+        return redirect(url_for('dashboard'))
+    t = Ticket.query.get_or_404(ticket_id)
+    if request.method == 'POST':
+        t.title = request.form.get('title', t.title).strip()
+        t.description = request.form.get('description', t.description).strip()
+        t.priority = request.form.get('priority', t.priority)
+        t.status = request.form.get('status', t.status)
+        assignee_id = request.form.get('assignee')
+        t.assignee_id = int(assignee_id) if assignee_id and assignee_id != 'None' else None
+        db.session.commit()
+        flash('Тикет обновлён.', 'success')
+        return redirect(url_for('manager_tickets'))
+    performers = User.query.filter_by(role='support').order_by(User.username.asc()).all()
+    return render_template('manager_edit_ticket.html', ticket=t, performers=performers)
+
+
+@app.route('/manager/ticket/<int:ticket_id>/delete', methods=['POST'])
+@login_required
+def manager_delete_ticket(ticket_id):
+    if current_user.role not in ('manager', 'admin'):
+        flash('Недостаточно прав для удаления тикета.', 'warning')
+        return redirect(url_for('dashboard'))
+    t = Ticket.query.get_or_404(ticket_id)
+    try:
+        # Удаляем вложения тикета
+        Attachment.query.filter_by(ticket_id=t.id).delete()
+        # Удаляем комментарии тикета (и их вложения)
+        TicketComment.query.filter_by(ticket_id=t.id).delete()
+        db.session.delete(t)
+        db.session.commit()
+        flash('Тикет удалён.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        app.logger.exception('Ошибка при удалении тикета: %s', e)
+        flash('Ошибка при удалении тикета. Проверьте логи.', 'danger')
+    return redirect(url_for('manager_tickets'))
+
+
+@app.route('/ticket/<int:ticket_id>/export_pdf')
+@login_required
+def export_ticket_pdf(ticket_id):
+    t = Ticket.query.get_or_404(ticket_id)
+    # Права на экспорт: пользователь может экспортировать свои тикеты; support, manager и admin — любые
+    if current_user.role == 'user' and t.creator_id != current_user.id:
+        flash('У вас нет доступа к этому тикету.', 'warning')
+        return redirect(url_for('dashboard'))
+    if current_user.role not in ('user', 'support', 'manager', 'admin'):
+        flash('Недостаточно прав для экспорта.', 'warning')
+        return redirect(url_for('dashboard'))
+
+    buffer = io.BytesIO()
+    # Предпочитаем любой TTF в static/fonts; при отсутствии — пробуем системные пути
+    font_found = False
+    font_name = None
+    fonts_dir = os.path.join(app.root_path, 'static', 'fonts')
+    # Регистрируем первую найденную в проекте TTF в static/fonts
+    try:
+        if os.path.isdir(fonts_dir):
+            for fname in os.listdir(fonts_dir):
+                if fname.lower().endswith('.ttf'):
+                    fp = os.path.join(fonts_dir, fname)
+                    try:
+                        candidate_name = os.path.splitext(fname)[0]
+                        pdfmetrics.registerFont(TTFont(candidate_name, fp))
+                        font_name = candidate_name
+                        font_found = True
+                        app.logger.info('Registered PDF font from %s', fp)
+                        break
+                    except Exception as e:
+                        app.logger.exception('Failed registering project font %s: %s', fp, e)
+    except Exception:
+        pass
+
+    # Резервный вариант: используем распространённый DejaVu TTF в системе
+    if not font_found:
+        system_paths = [
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/local/share/fonts/DejaVuSans.ttf',
+        ]
+        for fp in system_paths:
+            try:
+                if os.path.exists(fp):
+                    candidate_name = os.path.splitext(os.path.basename(fp))[0]
+                    pdfmetrics.registerFont(TTFont(candidate_name, fp))
+                    font_name = candidate_name
+                    font_found = True
+                    app.logger.info('Registered PDF font from %s', fp)
+                    break
+            except Exception as e:
+                app.logger.exception('Failed registering system font %s: %s', fp, e)
+
+    p = pdf_canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    y = height - 50
+    if font_found:
+        p.setFont(font_name, 16)
+    else:
+        p.setFont('Times-Bold', 16)
+    p.drawString(50, y, f"Тикет #{t.id}: {t.title}")
+    y -= 30
+    if font_found:
+        p.setFont(font_name, 11)
+    else:
+        p.setFont('Times-Roman', 11)
+    p.drawString(50, y, f"Статус: {get_status_label(t.status)}    Приоритет: {get_priority_label(t.priority)}")
+    y -= 20
+    # Информация об авторе (фамилия, имя, компания, адрес)
+    creator_name = f"{t.creator.last_name or ''} {t.creator.first_name or ''}".strip()
+    creator_company = t.creator.company_name or '—'
+    creator_address = t.creator.address or '—'
+    creator_phone = t.creator.phone or '—'
+    p.drawString(50, y, f"Автор: {creator_name} — {creator_company}")
+    y -= 18
+    p.drawString(50, y, f"Адрес автора: {creator_address}")
+    y -= 18
+    p.drawString(50, y, f"Телефон автора: {creator_phone}")
+    y -= 18
+    p.drawString(50, y, f"Создано: {t.created_at.strftime('%Y-%m-%d %H:%M:%S')}")
+    y -= 30
+    if font_found:
+        p.setFont(font_name, 12)
+    else:
+        p.setFont('Times-Bold', 12)
+    p.drawString(50, y, "Описание:")
+    y -= 18
+    if font_found:
+        p.setFont(font_name, 11)
+    else:
+        p.setFont('Helvetica', 11)
+    for line in t.description.split('\n'):
+        # Простая обёртка строк (наивная) для переноса в PDF
+        parts = [line[i:i+90] for i in range(0, len(line), 90)]
+        for part in parts:
+            if y < 80:
+                p.showPage()
+                y = height - 50
+            p.drawString(50, y, part)
+            y -= 14
+    y -= 10
+    if font_found:
+        p.setFont(font_name, 12)
+    else:
+        p.setFont('Helvetica-Bold', 12)
+    p.drawString(50, y, 'Комментарии:')
+    y -= 18
+    if font_found:
+        p.setFont(font_name, 10)
+    else:
+        p.setFont('Times-Roman', 10)
+    comments = t.comments.order_by(TicketComment.created_at.asc()).all()
+    for c in comments:
+        author = f"{c.author.last_name or ''} {c.author.first_name or ''}".strip() or c.author.username
+        created = c.created_at.strftime('%Y-%m-%d %H:%M')
+        text = f"{created} — {author}: {c.content}"
+        parts = [text[i:i+100] for i in range(0, len(text), 100)]
+        for part in parts:
+            if y < 80:
+                p.showPage()
+                y = height - 50
+            p.drawString(50, y, part)
+            y -= 12
+
+    p.showPage()
+    p.save()
+    buffer.seek(0)
+    # Используем параметр attachment_filename для совместимости со старыми версиями Flask
+    try:
+        return send_file(buffer, as_attachment=True, download_name=f'ticket_{t.id}.pdf', mimetype='application/pdf')
+    except TypeError:
+        return send_file(buffer, as_attachment=True, attachment_filename=f'ticket_{t.id}.pdf', mimetype='application/pdf')
 
 
 @app.route('/support')
@@ -278,7 +755,7 @@ def create_ticket():
         db.session.add(t)
         db.session.commit()
 
-        # обработка вложения при создании тикета (если есть)
+        # Обработка вложения при создании тикета (если файл был прислан)
         if file and file.filename != '':
             if not allowed_file(file.filename):
                 flash('Тип файла не разрешён для загрузки.', 'warning')
@@ -300,7 +777,7 @@ def create_ticket():
 @login_required
 def view_ticket(ticket_id):
     t = Ticket.query.get_or_404(ticket_id)
-    # security: users can view only their tickets, support can view all
+    # Безопасность: обычный пользователь видит только свои тикеты, support — все
     if current_user.role == 'user' and t.creator_id != current_user.id:
         flash('У вас нет доступа к этому тикету.', 'warning')
         return redirect(url_for('dashboard'))
@@ -334,6 +811,7 @@ def resolve_ticket(ticket_id):
         flash('Только ответственный исполнитель может закрыть тикет.', 'warning')
         return redirect(url_for('dashboard'))
     t.status = 'resolved'
+    t.resolved_at = datetime.utcnow()
     db.session.commit()
     flash('Тикет помечен как выполненный.', 'success')
     return redirect(url_for('view_ticket', ticket_id=ticket_id))
@@ -343,7 +821,7 @@ def resolve_ticket(ticket_id):
 @login_required
 def comment_ticket(ticket_id):
     t = Ticket.query.get_or_404(ticket_id)
-    # permission: user can comment on own ticket, support can comment on any
+    # Право комментировать: пользователь — свои тикеты, support — любые
     if current_user.role == 'user' and t.creator_id != current_user.id:
         flash('У вас нет доступа к этому тикету.', 'warning')
         return redirect(url_for('dashboard'))

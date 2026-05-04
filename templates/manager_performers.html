@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Исполнители</h2>
+{% if performers %}
+  <div class="list-group">
+    {% for p in performers %}
+      <div class="list-group-item">
+        <h5>{{ (p.last_name or '') }} {{ (p.first_name or '') }}</h5>
+        <p><small class="text-muted">{{ p.email }}</small></p>
+        <p><small class="text-muted">{% if p.phone %}{{ p.phone }}{% endif %}</small></p>
+        <p><strong>Текущие назначения:</strong></p>
+        {% set assigned = p.tickets_assigned.filter_by(status='in_progress').all() %}
+        {% if assigned %}
+          <ul>
+            {% for t in assigned %}
+              <li><a href="{{ url_for('view_ticket', ticket_id=t.id) }}">#{{ t.id }} {{ t.title }}</a> — {{ (t.creator.last_name or '') }} {{ (t.creator.first_name or '') }} ({{ t.creator.username }}){% if t.creator.company_name %} — {{ t.creator.company_name }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Нет текущих назначений.</p>
+        {% endif %}
+        <p><strong>История (все назначенные):</strong></p>
+        {% set history = p.tickets_assigned.all() %}
+        {% if history %}
+          <ul>
+            {% for t in history %}
+              <li><a href="{{ url_for('view_ticket', ticket_id=t.id) }}">#{{ t.id }} {{ t.title }}</a> — {{ t.status|status_label }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>Нет истории.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p>Нет исполнителей.</p>
+{% endif %}
+{% endblock %}

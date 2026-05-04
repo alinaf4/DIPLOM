@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Редактирование тикета #{{ ticket.id }}</h2>
+<form method="post">
+  <div class="mb-3">
+    <label class="form-label">Заголовок</label>
+    <input class="form-control" name="title" value="{{ ticket.title }}" />
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Описание</label>
+    <textarea class="form-control" name="description" rows="6">{{ ticket.description }}</textarea>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Приоритет</label>
+    <select name="priority" class="form-select">
+      <option value="low" {% if ticket.priority=='low' %}selected{% endif %}>Низкий</option>
+      <option value="medium" {% if ticket.priority=='medium' %}selected{% endif %}>Средний</option>
+      <option value="high" {% if ticket.priority=='high' %}selected{% endif %}>Высокий</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Статус</label>
+    <select name="status" class="form-select">
+      <option value="open" {% if ticket.status=='open' %}selected{% endif %}>{{ 'open'|status_label }}</option>
+      <option value="in_progress" {% if ticket.status=='in_progress' %}selected{% endif %}>{{ 'in_progress'|status_label }}</option>
+      <option value="resolved" {% if ticket.status=='resolved' %}selected{% endif %}>{{ 'resolved'|status_label }}</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Исполнитель</label>
+    <select name="assignee" class="form-select">
+      <option value="None">—</option>
+      {% for p in performers %}
+        <option value="{{ p.id }}" {% if ticket.assignee and ticket.assignee.id==p.id %}selected{% endif %}>{{ (p.last_name or '') }} {{ (p.first_name or '') }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button class="btn btn-primary">Сохранить</button>
+  <a class="btn btn-secondary" href="{{ url_for('manager_tickets') }}">Отмена</a>
+</form>
+{% endblock %}

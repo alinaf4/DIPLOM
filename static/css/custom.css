@@ -1,0 +1,43 @@
+/* Пользовательские переопределения стилей */
+body {
+  background-color: #f8fafc;
+}
+.navbar-brand {
+  font-weight: 700;
+}
+.btn-outline-primary {
+  border-color: #f55f4d;
+  color: #f55f4d;
+}
+
+/* Переопределяем основной цвет кнопок Bootstrap */
+.btn-primary {
+  background-color: #f55f4d !important;
+  border-color: #f55f4d !important;
+}
+.btn-primary:hover, .btn-primary:focus, .btn-outline-primary:hover, .btn-outline-primary:focus {
+  background-color: #e54e3d !important;
+  border-color: #e54e3d !important;
+}
+.alert {
+  word-break: break-word;
+}
+.alert-info {
+  background-color: #eea74ad3;
+  color: #532907;
+}
+/* Увеличим читаемость таблиц */
+.table td, .table th {
+  vertical-align: middle;
+}
+
+.navbar {
+    background-color: #343434 !important;
+}
+.nav-link {
+    color:#f8fafc !important;
+}
+
+.btn-group-sm>.btn, .btn-sm {
+    margin: 1px;
+}

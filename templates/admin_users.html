@@ -21,7 +21,7 @@
     {% for u in users %}
       <tr>
         <td>{{ loop.index }}</td>
-        <td>{{ u.username }}</td>
+        <td>{{ (u.last_name or '') }} {{ (u.first_name or '') }} {% if u.company_name %}- {{ u.company_name }}{% endif %}</td>
         <td>{{ u.email }}</td>
         <td>
           <form method="post" action="{{ url_for('admin_set_role', user_id=u.id) }}" class="d-flex">
@@ -35,9 +35,16 @@
         </td>
         <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '' }}</td>
         <td>
-          {% if u.username == 'admin' %}
-            <span class="text-muted">(системный)</span>
-          {% endif %}
+          <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('admin_edit_user_profile', user_id=u.id) }}">Редактировать</a>
+            <a class="btn btn-sm btn-outline-warning" href="{{ url_for('admin_change_user_password', user_id=u.id) }}">Сменить пароль</a>
+            <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Удалить пользователя? Это действие необратимо.');">
+              <button class="btn btn-sm btn-outline-danger" type="submit">Удалить</button>
+            </form>
+            {% if u.username == 'admin' %}
+              <span class="text-muted">(системный)</span>
+            {% endif %}
+          </div>
         </td>
       </tr>
     {% endfor %}

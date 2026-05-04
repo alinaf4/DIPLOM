@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Кабинет менеджера</h2>
+
+<div class="row">
+  <div class="col-md-6">
+    <h4>Статистика по заявителям (пользователи)</h4>
+    {% if creators_stats %}
+      <ul class="list-group mb-4">
+        {% for name, cnt in creators_stats %}
+          <li class="list-group-item">{{ name }} — {{ cnt }} заявок</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Нет данных.</p>
+    {% endif %}
+  </div>
+  <div class="col-md-6">
+    <h4>Статистика по заявителям (компании)</h4>
+    {% if creators_companies %}
+      <ul class="list-group mb-4">
+        {% for company, cnt in creators_companies %}
+          <li class="list-group-item">{{ company }} — {{ cnt }} заявок</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>Нет данных по компаниям.</p>
+    {% endif %}
+  </div>
+</div>
+
+<h4>Статистика по исполнителям</h4>
+{% if assignees_stats %}
+  <ul class="list-group mb-4">
+    {% for name, cnt in assignees_stats %}
+      <li class="list-group-item">{{ name }} — {{ cnt }} заявок</li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Нет назначенных исполнителей.</p>
+{% endif %}
+
+<h4>Последние тикеты</h4>
+{% if recent_tickets %}
+  <ul class="list-group">
+    {% for t in recent_tickets %}
+      <li class="list-group-item d-flex justify-content-between align-items-start">
+        <div>
+          <a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a>
+          <div><small class="text-muted">{{ (t.creator.last_name or '') }} {{ (t.creator.first_name or '') }} ({{ t.creator.username }}){% if t.creator.company_name %} — {{ t.creator.company_name }}{% endif %} — {{ t.created_at.strftime('%Y-%m-%d') }}</small></div>
+        </div>
+        <div>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('manager_edit_ticket', ticket_id=t.id) }}">Редактировать</a>
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('export_ticket_pdf', ticket_id=t.id) }}">Экспорт PDF</a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>Нет тикетов.</p>
+{% endif %}
+
+{% endblock %}

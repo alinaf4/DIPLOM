@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Пользователи (менеджер)</h2>
+<table class="table table-striped">
+  <thead>
+    <tr><th>#</th><th>Фамилия</th><th>Имя</th><th>Компания</th><th>Телефон</th><th>Email</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ u.last_name or '-' }}</td>
+        <td>{{ u.first_name or '-' }}</td>
+        <td>{{ u.company_name or '-' }}</td>
+        <td>{{ u.phone or '-' }}</td>
+        <td>{{ u.email }}</td>
+        <td><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('manager_edit_user_profile', user_id=u.id) }}">Редактировать</a></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

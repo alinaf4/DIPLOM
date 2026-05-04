@@ -8,11 +8,12 @@
     {% for t in open_tickets %}
       <li class="list-group-item">
         <a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a>
-        &nbsp;<small class="text-muted">от {{ t.creator.username }}</small>
-        <span class="badge bg-secondary ms-2">{{ t.priority }}</span>
+        &nbsp;<small class="text-muted">от {{ (t.creator.last_name or '') }} {{ (t.creator.first_name or '') }} ({{ t.creator.username }}){% if t.creator.company_name %} — {{ t.creator.company_name }}{% endif %}</small>
+        <span class="badge bg-secondary ms-2">{{ t.priority|priority_label }}</span>
         <form class="d-inline float-end" method="post" action="{{ url_for('take_ticket', ticket_id=t.id) }}">
           <button class="btn btn-sm btn-outline-primary">Взять в работу</button>
         </form>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('export_ticket_pdf', ticket_id=t.id) }}">PDF</a>
       </li>
     {% endfor %}
   </ul>
@@ -26,8 +27,9 @@
     {% for t in in_progress %}
       <li class="list-group-item">
         <a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a>
-        &nbsp;<small class="text-muted">от {{ t.creator.username }}</small>
-        <span class="badge bg-secondary ms-2">{{ t.priority }}</span>
+        &nbsp;<small class="text-muted">от {{ (t.creator.last_name or '') }} {{ (t.creator.first_name or '') }} ({{ t.creator.username }}){% if t.creator.company_name %} — {{ t.creator.company_name }}{% endif %}</small>
+        <span class="badge bg-secondary ms-2">{{ t.priority|priority_label }}</span>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('export_ticket_pdf', ticket_id=t.id) }}">PDF</a>
       </li>
     {% endfor %}
   </ul>
@@ -41,8 +43,9 @@
     {% for t in assigned_all %}
       <li class="list-group-item">
         <a href="{{ url_for('view_ticket', ticket_id=t.id) }}">{{ t.title }}</a>
-        &nbsp;<small class="text-muted">исполнитель: {{ t.assignee.username if t.assignee else '—' }}</small>
-        <span class="badge bg-secondary ms-2">{{ t.priority }}</span>
+        &nbsp;<small class="text-muted">исполнитель: {% if t.assignee %}{{ (t.assignee.last_name or '') }} {{ (t.assignee.first_name or '') }}{% else %}—{% endif %}</small>
+        <span class="badge bg-secondary ms-2">{{ t.priority|priority_label }}</span>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('export_ticket_pdf', ticket_id=t.id) }}">PDF</a>
       </li>
     {% endfor %}
   </ul>
