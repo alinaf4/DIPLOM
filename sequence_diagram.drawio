@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-05-08" agent="GitHub Copilot" version="1.0">
+  <diagram name="Sequence Diagram">
+    <mxGraphModel dx="1200" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <mxCell id="title" parent="1" value="Sequence Diagram: User, Application, Database Interaction" style="text;html=1;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" vertex="1">
+          <mxGeometry x="0" y="10" width="1400" height="30" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="user" parent="1" value="User&#10;Browser" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#81C784;strokeColor=#1B5E20;strokeWidth=2;align=center;verticalAlign=middle;" vertex="1">
+          <mxGeometry x="100" y="70" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="app" parent="1" value="Flask App&#10;Backend" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#FFB74D;strokeColor=#E65100;strokeWidth=2;align=center;verticalAlign=middle;" vertex="1">
+          <mxGeometry x="550" y="70" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="db" parent="1" value="PostgreSQL&#10;Database" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#CE93D8;strokeColor=#4A148C;strokeWidth=2;align=center;verticalAlign=middle;" vertex="1">
+          <mxGeometry x="1000" y="70" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="user-line" parent="1" value="" style="line;strokeWidth=2;direction=south;html=1;" edge="1" source="user" target="user">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="app-line" parent="1" value="" style="line;strokeWidth=2;direction=south;html=1;" edge="1" source="app" target="app">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="db-line" parent="1" value="" style="line;strokeWidth=2;direction=south;html=1;" edge="1" source="db" target="db">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1070" y="150" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="user-line-extend" parent="1" value="" style="line;strokeWidth=1;html=1;" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="170" y="150" as="sourcePoint" />
+            <mxPoint x="170" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="app-line-extend" parent="1" value="" style="line;strokeWidth=1;html=1;" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="150" as="sourcePoint" />
+            <mxPoint x="620" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="db-line-extend" parent="1" value="" style="line;strokeWidth=1;html=1;" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1070" y="150" as="sourcePoint" />
+            <mxPoint x="1070" y="1050" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="step1-label" parent="1" value="1. Login" style="text;html=1;fontSize=10;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1">
+          <mxGeometry x="50" y="200" width="80" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="msg1" parent="1" value="POST /login&#10;(username, password)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontStyle=0;" vertex="1" connectable="0">
+          <mxGeometry x="350" y="220" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow1" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="220" as="sourcePoint" />
+            <mxPoint x="550" y="220" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg1b" parent="1" value="Query user table" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontStyle=0;" vertex="1" connectable="0">
+          <mxGeometry x="800" y="260" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow1b" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="690" y="260" as="sourcePoint" />
+            <mxPoint x="1000" y="260" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg1c" parent="1" value="User data" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontStyle=0;" vertex="1" connectable="0">
+          <mxGeometry x="800" y="300" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow1c" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1000" y="290" as="sourcePoint" />
+            <mxPoint x="690" y="290" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="msg1d" parent="1" value="Session created" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontStyle=0;" vertex="1" connectable="0">
+          <mxGeometry x="350" y="330" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow1d" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="320" as="sourcePoint" />
+            <mxPoint x="240" y="320" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="step2-label" parent="1" value="2. Create Ticket" style="text;html=1;fontSize=10;fontStyle=1;fillColor=none;strokeColor=none;" vertex="1">
+          <mxGeometry x="50" y="380" width="100" height="20" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="msg2" parent="1" value="POST /ticket/create&#10;(title, description, file)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontStyle=0;" vertex="1" connectable="0">
+          <mxGeometry x="330" y="400" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow2" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="240" y="400" as="sourcePoint" />
+            <mxPoint x="550" y="400" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        
