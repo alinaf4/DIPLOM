@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="GitHub Copilot">
   <diagram name="Simple Architecture" id="0">
-    <mxGraphModel dx="1088" dy="604" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="1347" dy="748" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -109,9 +109,6 @@
         </mxCell>
         <mxCell id="file-storage" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#EEEEEE;strokeColor=#616161;strokeWidth=1;align=center;" value="Папка для хранения файлов&lt;br&gt;uploads/" vertex="1">
           <mxGeometry height="60" width="280" x="670" y="490" as="geometry" />
-        </mxCell>
-        <mxCell id="legend" parent="1" style="text;html=1;fontSize=8;align=center;fillColor=none;strokeColor=none;fontStyle=2;" value="Legend: Gray arrows - file operations, Black arrows - API/SQL communication" vertex="1">
-          <mxGeometry height="20" width="1400" y="850" as="geometry" />
         </mxCell>
         <mxCell id="DaKr4GDoKvpiSueAQOhq-5" edge="1" parent="1" source="DaKr4GDoKvpiSueAQOhq-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=-0.005;entryY=0.485;entryDx=0;entryDy=0;entryPerimeter=0;" target="backend-container">
           <mxGeometry relative="1" as="geometry" />
