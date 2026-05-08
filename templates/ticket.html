@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Тикет #{{ ticket.id }} — {{ ticket.title }}</h2>
+<h2>Заявка #{{ ticket.id }} — {{ ticket.title }}</h2>
 <p>
   <strong>Статус:</strong> {{ ticket.status|status_label }} |
   <strong>Приоритет:</strong> {{ ticket.priority|priority_label }}
 </p>
 <p>
-  <strong>Создатель:</strong> {{ (ticket.creator.last_name or '') }} {{ (ticket.creator.first_name or '') }} ({{ ticket.creator.username }}){% if ticket.creator.company_name %} — {{ ticket.creator.company_name }}{% endif %}
+  <strong>Создатель:</strong> {{ (ticket.creator.last_name or '') }} {{ (ticket.creator.first_name or '') }} {{ (ticket.creator.middle_name or '') }} ({{ ticket.creator.username }}){% if ticket.creator.company_name %} — {{ ticket.creator.company_name }}{% endif %}
   <br>
   <strong>Адрес:</strong> {{ ticket.creator.address or '—' }}
 </p>
@@ -16,6 +16,9 @@
     <br><strong>Выполнен:</strong> {{ ticket.resolved_at.strftime('%Y-%m-%d %H:%M') }}
   {% endif %}
 </p>
+<p>
+  <strong>Исполнитель:</strong> {% if ticket.assignee %}{{ (ticket.assignee.last_name or '') }} {{ (ticket.assignee.first_name or '') }} {{ (ticket.assignee.middle_name or '') }}{% else %}—{% endif %}
+</p>
 <p><strong>Описание:</strong></p>
 <div class="border p-3 mb-3">{{ ticket.description }}</div>
 
@@ -24,7 +27,7 @@
   <ul class="list-group mb-3">
     {% for a in attachments %}
       <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>{{ a.original_name }} <small class="text-muted">от {{ (a.uploader.last_name or '') }} {{ (a.uploader.first_name or '') }}</small></span>
+        <span>{{ a.original_name }} <small class="text-muted">от {{ (a.uploader.last_name or '') }} {{ (a.uploader.first_name or '') }} {{ (a.uploader.middle_name or '') }}</small></span>
         <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('uploaded_file', filename=a.filename) }}">Скачать</a>
       </li>
     {% endfor %}
@@ -40,8 +43,6 @@
     <form method="post" action="{{ url_for('resolve_ticket', ticket_id=ticket.id) }}">
       <button class="btn btn-success">Пометить как выполненный</button>
     </form>
-  {% else %}
-    <p>Исполнитель: {% if ticket.assignee %}{{ (ticket.assignee.last_name or '') }} {{ (ticket.assignee.first_name or '') }}{% else %}—{% endif %}</p>
   {% endif %}
 {% endif %}
 
@@ -51,7 +52,7 @@
   {% for c in comments %}
     <div class="card mb-2">
       <div class="card-body">
-        <h6 class="card-subtitle mb-2 text-muted">{{ (c.author.last_name or '') }} {{ (c.author.first_name or '') }}{% if c.author.company_name %} — {{ c.author.company_name }}{% endif %} — {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</h6>
+        <h6 class="card-subtitle mb-2 text-muted">{{ (c.author.last_name or '') }} {{ (c.author.first_name or '') }} {{ (c.author.middle_name or '') }}{% if c.author.company_name %} — {{ c.author.company_name }}{% endif %} — {{ c.created_at.strftime('%Y-%m-%d %H:%M') }}</h6>
         <p class="card-text">{{ c.content }}</p>
         {% if c.attachment %}
           <p>Вложение: <a href="{{ url_for('uploaded_file', filename=c.attachment.filename) }}">{{ c.attachment.original_name }}</a></p>

@@ -1,0 +1,122 @@
+<mxfile host="app.diagrams.net" agent="GitHub Copilot">
+  <diagram name="Simple Architecture" id="0">
+    <mxGraphModel dx="1088" dy="604" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="DaKr4GDoKvpiSueAQOhq-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=14;" value="Клиентское устройство" vertex="1">
+          <mxGeometry height="250" width="170" x="10" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="server-host" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=13;fontStyle=1;fillColor=#FFF9C4;strokeColor=#F57F17;strokeWidth=2;align=center;verticalAlign=top;" value="Сервер" vertex="1">
+          <mxGeometry height="500" width="1050" x="300" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="frontend-container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#B3E5FC;strokeColor=#01579B;strokeWidth=2;align=center;verticalAlign=top;" value="FRONTEND/BACKEND CONTAINER&lt;div&gt;&lt;br/&gt;&lt;/div&gt;" vertex="1">
+          <mxGeometry height="370" width="650" x="340" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="DaKr4GDoKvpiSueAQOhq-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#FFE0B2;strokeColor=#E65100;strokeWidth=2;align=center;verticalAlign=top;" value="FRONTEND&lt;br&gt;Python Flask Вебсервер" vertex="1">
+          <mxGeometry height="310" width="280" x="350" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="title" parent="1" style="text;html=1;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" value="Архитектура приложения" vertex="1">
+          <mxGeometry height="30" width="1400" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="client" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;fillColor=#81C784;strokeColor=#1B5E20;strokeWidth=2;align=center;verticalAlign=middle;" value="Веб браузер" vertex="1">
+          <mxGeometry height="120" width="150" x="20" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-client-server" edge="1" parent="1" source="client" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontSize=11;fontStyle=1;strokeWidth=2;" target="server-host">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+            <mxPoint x="200" y="210" as="sourcePoint" />
+            <mxPoint x="300" y="210" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="http-label" connectable="0" parent="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1;" value="HTTP/HTTPS" vertex="1">
+          <mxGeometry x="230" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="docker-label" parent="1" style="text;html=1;fontSize=10;fontStyle=2;align=center;fillColor=none;strokeColor=none;" value="&lt;b&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;Docker&amp;nbsp; engine&lt;/font&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="200" x="320" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-html" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#4FC3F7;strokeColor=#01579B;strokeWidth=1;align=center;" value="HTML шаблоны страниц&lt;br&gt;Jinja2" vertex="1">
+          <mxGeometry height="50" width="100" x="370" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-css" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#4FC3F7;strokeColor=#01579B;strokeWidth=1;align=center;" value="Стили отображения&lt;div&gt;CSS/Bootstrap&lt;br&gt;Static Assets&lt;/div&gt;" vertex="1">
+          <mxGeometry height="50" width="100" x="490" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-forms" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#4FC3F7;strokeColor=#01579B;strokeWidth=1;align=center;" value="Формы&lt;br&gt;Авторизация, Создание / редактирование заявок" vertex="1">
+          <mxGeometry height="50" width="100" x="370" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-pages" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#4FC3F7;strokeColor=#01579B;strokeWidth=1;align=center;" value="Страницы&lt;br&gt;Кабинеты пользователей, Таблицы" vertex="1">
+          <mxGeometry height="50" width="100" x="490" y="260" as="geometry" />
+        </mxCell>
+        <mxCell id="fe-export" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#4FC3F7;strokeColor=#01579B;strokeWidth=1;align=center;" value="Экспорт в PDF" vertex="1">
+          <mxGeometry height="50" width="100" x="490" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="backend-container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#FFE0B2;strokeColor=#E65100;strokeWidth=2;align=center;verticalAlign=top;" value="BACKEND&lt;br&gt;Python Flask Application" vertex="1">
+          <mxGeometry height="320" width="280" x="680" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="be-routes" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFB74D;strokeColor=#E65100;strokeWidth=1;align=center;" value="Маршруты" vertex="1">
+          <mxGeometry height="50" width="100" x="700" y="185" as="geometry" />
+        </mxCell>
+        <mxCell id="be-auth" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFB74D;strokeColor=#E65100;strokeWidth=1;align=center;" value="Правила авторизации, Роли" vertex="1">
+          <mxGeometry height="50" width="100" x="830" y="185" as="geometry" />
+        </mxCell>
+        <mxCell id="be-logic" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFB74D;strokeColor=#E65100;strokeWidth=1;align=center;" value="Логина заявок, статус" vertex="1">
+          <mxGeometry height="50" width="100" x="700" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="be-models" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFB74D;strokeColor=#E65100;strokeWidth=1;align=center;" value="Работа с базой данных&lt;div&gt;SQLAlchemy&lt;/div&gt;" vertex="1">
+          <mxGeometry height="50" width="100" x="830" y="265" as="geometry" />
+        </mxCell>
+        <mxCell id="DaKr4GDoKvpiSueAQOhq-6" edge="1" parent="1" source="be-files" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="file-storage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="be-files" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFB74D;strokeColor=#E65100;strokeWidth=1;align=center;" value="Загрузка / Выгрузка файлов" vertex="1">
+          <mxGeometry height="50" width="100" x="700" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="DaKr4GDoKvpiSueAQOhq-1" edge="1" parent="1" source="be-pdf" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="file-storage" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="be-pdf" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;fillColor=#FFB74D;strokeColor=#E65100;strokeWidth=1;align=center;" value="Генерация PDF" vertex="1">
+          <mxGeometry height="50" width="100" x="830" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="database-container" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;fontStyle=1;fillColor=#CE93D8;strokeColor=#4A148C;strokeWidth=2;align=center;verticalAlign=top;labelPosition=center;verticalLabelPosition=middle;" value="DATABASE CONTAINER&#xa;PostgreSQL" vertex="1">
+          <mxGeometry height="340" width="270" x="1030" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="db-tables" parent="1" style="text;html=1;fontSize=10;fontStyle=1;align=left;fillColor=none;strokeColor=none;" value="Tables:" vertex="1">
+          <mxGeometry height="20" width="240" x="1050" y="160" as="geometry" />
+        </mxCell>
+        <mxCell id="db-user" parent="1" style="text;html=1;fontSize=9;align=left;fillColor=none;strokeColor=none;" value="user" vertex="1">
+          <mxGeometry height="15" width="220" x="1070" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="db-ticket" parent="1" style="text;html=1;fontSize=9;align=left;fillColor=none;strokeColor=none;" value="ticket" vertex="1">
+          <mxGeometry height="15" width="220" x="1070" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="db-comment" parent="1" style="text;html=1;fontSize=9;align=left;fillColor=none;strokeColor=none;" value="ticket_comment" vertex="1">
+          <mxGeometry height="15" width="220" x="1070" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="db-attachment" parent="1" style="text;html=1;fontSize=9;align=left;fillColor=none;strokeColor=none;" value="attachment" vertex="1">
+          <mxGeometry height="15" width="220" x="1070" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="api-label" connectable="0" parent="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontStyle=1;" value="REST API&#xa;JSON" vertex="1">
+          <mxGeometry x="655" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow-be-db" edge="1" parent="1" source="backend-container" style="endArrow=classic;dashed=0;html=1;fontSize=10;strokeWidth=2;entryX=-0.005;entryY=0.579;entryDx=0;entryDy=0;entryPerimeter=0;" target="database-container">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+            <mxPoint x="1020" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sql-label" connectable="0" parent="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontStyle=1;" value="SQL&#xa;Queries" vertex="1">
+          <mxGeometry x="990" y="285" as="geometry" />
+        </mxCell>
+        <mxCell id="file-storage" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=9;fillColor=#EEEEEE;strokeColor=#616161;strokeWidth=1;align=center;" value="Папка для хранения файлов&lt;br&gt;uploads/" vertex="1">
+          <mxGeometry height="60" width="280" x="670" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="legend" parent="1" style="text;html=1;fontSize=8;align=center;fillColor=none;strokeColor=none;fontStyle=2;" value="Legend: Gray arrows - file operations, Black arrows - API/SQL communication" vertex="1">
+          <mxGeometry height="20" width="1400" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="DaKr4GDoKvpiSueAQOhq-5" edge="1" parent="1" source="DaKr4GDoKvpiSueAQOhq-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=-0.005;entryY=0.485;entryDx=0;entryDy=0;entryPerimeter=0;" target="backend-container">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

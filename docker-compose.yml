@@ -16,8 +16,7 @@ services:
     environment:
       - FLASK_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/crm_db
-      - SECRET_KEY=change-this-secret
-      - SUPPORT_CODE=SUPPORT123
+      - SECRET_KEY=secretkey123
       - UPLOAD_FOLDER=/app/uploads
       - MAX_CONTENT_LENGTH=10485760   # 10 MB по умолчанию
     ports:

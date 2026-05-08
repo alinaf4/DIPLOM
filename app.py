@@ -31,8 +31,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.environ.get('UPLOAD_FOLDER', os.path.join(os.path.abspath(os.path.dirname(__file__)), 'uploads'))
 app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_CONTENT_LENGTH', 10 * 1024 * 1024))  # 10MB
 
-SUPPORT_CODE = os.environ.get('SUPPORT_CODE', 'SUPPORT123')  # секрет для регистрации поддержки
-
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
@@ -87,6 +85,7 @@ class User(db.Model, UserMixin):
     company_name = db.Column(db.String(255), nullable=True)
     address = db.Column(db.String(500), nullable=True)
     first_name = db.Column(db.String(150), nullable=True)
+    middle_name = db.Column(db.String(150), nullable=True)
     last_name = db.Column(db.String(150), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -169,6 +168,7 @@ def create_tables():
                     "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);",
                     "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS address VARCHAR(500);",
                     "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS first_name VARCHAR(150);",
+                    "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS middle_name VARCHAR(150);",
                     "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS last_name VARCHAR(150);",
                     "ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS phone VARCHAR(50);",
                 ]
@@ -217,6 +217,7 @@ def ensure_profile_columns():
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS company_name VARCHAR(255);',
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS address VARCHAR(500);',
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS first_name VARCHAR(150);',
+        'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS middle_name VARCHAR(150);',
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS last_name VARCHAR(150);',
         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS phone VARCHAR(50);',
         'ALTER TABLE "ticket" ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP;',
@@ -249,7 +250,13 @@ def register():
         username = request.form.get('username').strip()
         email = request.form.get('email').strip()
         password = request.form.get('password')
-        support_code = request.form.get('support_code', '').strip()
+        # Дополнительные поля профиля
+        first_name = request.form.get('first_name', '').strip()
+        middle_name = request.form.get('middle_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        company_name = request.form.get('company_name', '').strip()
+        phone = request.form.get('phone', '').strip()
+        address = request.form.get('address', '').strip()
 
         if not username or not email or not password:
             flash('Заполните все обязательные поля.', 'danger')
@@ -259,8 +266,18 @@ def register():
             flash('Пользователь с таким именем или email уже существует.', 'danger')
             return redirect(url_for('register'))
 
-        role = 'support' if support_code and support_code == SUPPORT_CODE else 'user'
-        user = User(username=username, email=email, role=role)
+        # Роль при регистрации по умолчанию — пользователь
+        user = User(
+            username=username,
+            email=email,
+            role='user',
+            first_name=first_name or None,
+            middle_name=middle_name or None,
+            last_name=last_name or None,
+            company_name=company_name or None,
+            phone=phone or None,
+            address=address or None,
+        )
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
@@ -361,6 +378,7 @@ def admin_edit_user_profile(user_id):
                 return redirect(url_for('admin_edit_user_profile', user_id=user.id))
             user.email = new_email
         user.first_name = request.form.get('first_name') or None
+        user.middle_name = request.form.get('middle_name') or None
         user.last_name = request.form.get('last_name') or None
         user.phone = request.form.get('phone') or None
         user.company_name = request.form.get('company_name') or None
@@ -451,12 +469,12 @@ def manager_dashboard():
     try:
         # Статистика: количество тикетов по создателям (по пользователю) и по компаниям, а также по исполнителям
         creators_by_user = db.session.query(
-            User.id, User.first_name, User.last_name, User.username, db.func.count(Ticket.id).label('cnt')
-        ).join(Ticket, Ticket.creator_id == User.id).group_by(User.id, User.first_name, User.last_name, User.username).order_by(db.desc('cnt')).all()
+            User.id, User.first_name, User.middle_name, User.last_name, User.username, db.func.count(Ticket.id).label('cnt')
+        ).join(Ticket, Ticket.creator_id == User.id).group_by(User.id, User.first_name, User.middle_name, User.last_name, User.username).order_by(db.desc('cnt')).all()
 
         creators_stats = []
-        for uid, first, last, username, cnt in creators_by_user:
-            display = (f"{last or ''} {first or ''}".strip() or username)
+        for uid, first, middle, last, username, cnt in creators_by_user:
+            display = (f"{last or ''} {first or ''} {middle or ''}".strip() or username)
             creators_stats.append((display, cnt))
 
         # Агрегация по названию компании
@@ -466,21 +484,60 @@ def manager_dashboard():
         creators_companies = [((cn or '—'), cnt) for cn, cnt in creators_by_company]
 
         assignees_by_user = db.session.query(
-            User.id, User.first_name, User.last_name, User.username, db.func.count(Ticket.id).label('cnt')
-        ).join(Ticket, Ticket.assignee_id == User.id).group_by(User.id, User.first_name, User.last_name, User.username).order_by(db.desc('cnt')).all()
+            User.id, User.first_name, User.middle_name, User.last_name, User.username, db.func.count(Ticket.id).label('cnt')
+        ).join(Ticket, Ticket.assignee_id == User.id).group_by(User.id, User.first_name, User.middle_name, User.last_name, User.username).order_by(db.desc('cnt')).all()
         assignees_stats = []
-        for uid, first, last, username, cnt in assignees_by_user:
-            display = (f"{last or ''} {first or ''}".strip() or username)
+        for uid, first, middle, last, username, cnt in assignees_by_user:
+            display = (f"{last or ''} {first or ''} {middle or ''}".strip() or username)
             assignees_stats.append((display, cnt))
 
-        recent_tickets = Ticket.query.order_by(Ticket.created_at.desc()).limit(20).all()
+        # Фильтруем заявки по параметрам GET: status, date_from, date_to, date_field
+        q = Ticket.query
+        status = request.args.get('status')
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        date_field = request.args.get('date_field', 'created')  # 'created' или 'updated'
+
+        if status and status != 'all':
+            q = q.filter(Ticket.status == status)
+
+        # Поддерживаем формат YYYY-MM-DD для полей даты
+        from datetime import datetime, timedelta
+        def parse_date(d):
+            try:
+                return datetime.strptime(d, '%Y-%m-%d')
+            except Exception:
+                return None
+
+        d_from = parse_date(date_from) if date_from else None
+        d_to = parse_date(date_to) if date_to else None
+        if d_from:
+            if date_field == 'updated':
+                q = q.filter(Ticket.updated_at >= d_from)
+            else:
+                q = q.filter(Ticket.created_at >= d_from)
+        if d_to:
+            # включаем весь день
+            end_day = d_to + timedelta(days=1)
+            if date_field == 'updated':
+                q = q.filter(Ticket.updated_at < end_day)
+            else:
+                q = q.filter(Ticket.created_at < end_day)
+
+        # По умолчанию сортируем по выбранному полю (created/updated) по убыванию
+        if date_field == 'updated':
+            tickets = q.order_by(Ticket.updated_at.desc()).all()
+        else:
+            tickets = q.order_by(Ticket.created_at.desc()).all()
     except Exception as e:
         app.logger.exception('Ошибка при формировании данных менеджера: %s', e)
         flash('Произошла ошибка при загрузке данных менеджера. Проверьте логи.', 'danger')
         creators_stats = []
         assignees_stats = []
-        recent_tickets = []
-    return render_template('manager_dashboard.html', creators_stats=creators_stats, creators_companies=creators_companies, assignees_stats=assignees_stats, recent_tickets=recent_tickets)
+        tickets = []
+    # Список возможных статусов для фильтра
+    statuses = [('all', 'Все')] + [(k, v) for k, v in STATUS_LABELS.items()]
+    return render_template('manager_dashboard.html', creators_stats=creators_stats, creators_companies=creators_companies, assignees_stats=assignees_stats, tickets=tickets, statuses=statuses)
 
 
 @app.route('/manager/tickets')
@@ -489,8 +546,44 @@ def manager_tickets():
     if current_user.role != 'manager':
         flash('Только менеджер может видеть эту страницу.', 'warning')
         return redirect(url_for('dashboard'))
-    tickets = Ticket.query.order_by(Ticket.created_at.desc()).all()
-    return render_template('manager_tickets.html', tickets=tickets)
+    # Поддержка фильтров: status, date_from, date_to, date_field
+    q = Ticket.query
+    status = request.args.get('status')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    date_field = request.args.get('date_field', 'created')
+
+    if status and status != 'all':
+        q = q.filter(Ticket.status == status)
+
+    from datetime import datetime, timedelta
+    def parse_date(d):
+        try:
+            return datetime.strptime(d, '%Y-%m-%d')
+        except Exception:
+            return None
+
+    d_from = parse_date(date_from) if date_from else None
+    d_to = parse_date(date_to) if date_to else None
+    if d_from:
+        if date_field == 'updated':
+            q = q.filter(Ticket.updated_at >= d_from)
+        else:
+            q = q.filter(Ticket.created_at >= d_from)
+    if d_to:
+        end_day = d_to + timedelta(days=1)
+        if date_field == 'updated':
+            q = q.filter(Ticket.updated_at < end_day)
+        else:
+            q = q.filter(Ticket.created_at < end_day)
+
+    if date_field == 'updated':
+        tickets = q.order_by(Ticket.updated_at.desc()).all()
+    else:
+        tickets = q.order_by(Ticket.created_at.desc()).all()
+
+    statuses = [('all', 'Все')] + [(k, v) for k, v in STATUS_LABELS.items()]
+    return render_template('manager_tickets.html', tickets=tickets, statuses=statuses)
 
 
 @app.route('/profile', methods=['GET', 'POST'])
@@ -499,6 +592,7 @@ def profile():
     user = current_user
     if request.method == 'POST':
         user.first_name = request.form.get('first_name') or None
+        user.middle_name = request.form.get('middle_name') or None
         user.last_name = request.form.get('last_name') or None
         user.phone = request.form.get('phone') or None
         user.company_name = request.form.get('company_name') or None
@@ -528,6 +622,7 @@ def manager_edit_user_profile(user_id):
     user = User.query.get_or_404(user_id)
     if request.method == 'POST':
         user.first_name = request.form.get('first_name') or None
+        user.middle_name = request.form.get('middle_name') or None
         user.last_name = request.form.get('last_name') or None
         user.phone = request.form.get('phone') or None
         user.company_name = request.form.get('company_name') or None
@@ -627,7 +722,7 @@ def export_ticket_pdf(ticket_id):
     except Exception:
         pass
 
-    # Резервный вариант: используем распространённый DejaVu TTF в системе
+    # Резервный вариант: используем DejaVu TTF в системе
     if not font_found:
         system_paths = [
             '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
@@ -661,7 +756,7 @@ def export_ticket_pdf(ticket_id):
     p.drawString(50, y, f"Статус: {get_status_label(t.status)}    Приоритет: {get_priority_label(t.priority)}")
     y -= 20
     # Информация об авторе (фамилия, имя, компания, адрес)
-    creator_name = f"{t.creator.last_name or ''} {t.creator.first_name or ''}".strip()
+    creator_name = f"{t.creator.last_name or ''} {t.creator.first_name or ''} {t.creator.middle_name or ''}".strip()
     creator_company = t.creator.company_name or '—'
     creator_address = t.creator.address or '—'
     creator_phone = t.creator.phone or '—'
@@ -705,7 +800,7 @@ def export_ticket_pdf(ticket_id):
         p.setFont('Times-Roman', 10)
     comments = t.comments.order_by(TicketComment.created_at.asc()).all()
     for c in comments:
-        author = f"{c.author.last_name or ''} {c.author.first_name or ''}".strip() or c.author.username
+        author = f"{c.author.last_name or ''} {c.author.first_name or ''} {c.author.middle_name or ''}".strip() or c.author.username
         created = c.created_at.strftime('%Y-%m-%d %H:%M')
         text = f"{created} — {author}: {c.content}"
         parts = [text[i:i+100] for i in range(0, len(text), 100)]
@@ -733,9 +828,11 @@ def support_dashboard():
         flash('Только техподдержка может видеть эту страницу.', 'warning')
         return redirect(url_for('dashboard'))
     open_tickets = Ticket.query.filter_by(status='open').order_by(Ticket.created_at.asc()).all()
+    # Мои тикеты в работе
     in_progress = Ticket.query.filter_by(status='in_progress', assignee_id=current_user.id).order_by(Ticket.updated_at.desc()).all()
-    assigned_all = Ticket.query.filter_by(status='in_progress').order_by(Ticket.updated_at.desc()).all()
-    return render_template('support_dashboard.html', open_tickets=open_tickets, in_progress=in_progress, assigned_all=assigned_all)
+    # Мои выполненные тикеты (по исполнителю)
+    resolved_my = Ticket.query.filter_by(status='resolved', assignee_id=current_user.id).order_by(Ticket.resolved_at.desc()).all()
+    return render_template('support_dashboard.html', open_tickets=open_tickets, in_progress=in_progress, resolved_my=resolved_my)
 
 
 @app.route('/ticket/create', methods=['GET', 'POST'])

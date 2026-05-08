@@ -5,12 +5,16 @@
   <div class="row">
     <div class="col-md-6">
       <div class="mb-3">
+        <label class="form-label">Фамилия</label>
+        <input class="form-control" name="last_name" value="{{ user.last_name or '' }}">
+      </div>
+      <div class="mb-3">
         <label class="form-label">Имя</label>
         <input class="form-control" name="first_name" value="{{ user.first_name or '' }}">
       </div>
       <div class="mb-3">
-        <label class="form-label">Фамилия</label>
-        <input class="form-control" name="last_name" value="{{ user.last_name or '' }}">
+        <label class="form-label">Отчество</label>
+        <input class="form-control" name="middle_name" value="{{ user.middle_name or '' }}">
       </div>
       <div class="mb-3">
         <label class="form-label">Телефон</label>

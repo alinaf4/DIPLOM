@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Мой кабинет — пользователь</h2>
-<p><a class="btn btn-success" href="{{ url_for('create_ticket') }}">Создать тикет</a></p>
+<p><a class="btn btn-success" href="{{ url_for('create_ticket') }}">Создать заявку</a></p>
 
-<h4>Мои тикеты</h4>
+<h4>Мои заявки</h4>
 {% if tickets %}
   <table class="table">
     <thead><tr><th>#</th><th>Заголовок</th><th>Приоритет</th><th>Статус</th><th>Дата</th></tr></thead>
@@ -20,6 +20,6 @@
     </tbody>
   </table>
 {% else %}
-  <p>Тикетов нет.</p>
+  <p>Заявок нет.</p>
 {% endif %}
 {% endblock %}

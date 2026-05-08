@@ -21,7 +21,7 @@
     {% for u in users %}
       <tr>
         <td>{{ loop.index }}</td>
-        <td>{{ (u.last_name or '') }} {{ (u.first_name or '') }} {% if u.company_name %}- {{ u.company_name }}{% endif %}</td>
+        <td>{{ (u.last_name or '') }} {{ (u.first_name or '') }} {{ (u.middle_name or '') }} {% if u.company_name %}- {{ u.company_name }}{% endif %}</td>
         <td>{{ u.email }}</td>
         <td>
           <form method="post" action="{{ url_for('admin_set_role', user_id=u.id) }}" class="d-flex">

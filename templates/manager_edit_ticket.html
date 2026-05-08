@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Редактирование тикета #{{ ticket.id }}</h2>
+<h2>Редактирование заявки #{{ ticket.id }}</h2>
 <form method="post">
   <div class="mb-3">
     <label class="form-label">Заголовок</label>
@@ -31,7 +31,7 @@
     <select name="assignee" class="form-select">
       <option value="None">—</option>
       {% for p in performers %}
-        <option value="{{ p.id }}" {% if ticket.assignee and ticket.assignee.id==p.id %}selected{% endif %}>{{ (p.last_name or '') }} {{ (p.first_name or '') }}</option>
+        <option value="{{ p.id }}" {% if ticket.assignee and ticket.assignee.id==p.id %}selected{% endif %}>{{ (p.last_name or '') }} {{ (p.first_name or '') }} {{ (p.middle_name or '') }}</option>
       {% endfor %}
     </select>
   </div>

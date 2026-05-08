@@ -3,7 +3,7 @@
 <h2>Пользователи (менеджер)</h2>
 <table class="table table-striped">
   <thead>
-    <tr><th>#</th><th>Фамилия</th><th>Имя</th><th>Компания</th><th>Телефон</th><th>Email</th><th></th></tr>
+    <tr><th>#</th><th>Фамилия</th><th>Имя</th><th>Отчество</th><th>Компания</th><th>Телефон</th><th>Email</th><th></th></tr>
   </thead>
   <tbody>
     {% for u in users %}
@@ -11,6 +11,7 @@
         <td>{{ loop.index }}</td>
         <td>{{ u.last_name or '-' }}</td>
         <td>{{ u.first_name or '-' }}</td>
+        <td>{{ u.middle_name or '-' }}</td>
         <td>{{ u.company_name or '-' }}</td>
         <td>{{ u.phone or '-' }}</td>
         <td>{{ u.email }}</td>
